@@ -139,19 +139,6 @@ const getPriceAndRequestsTextAndTooltip = ({
   const creditsText = (
     <Trans>{Math.max(0, availableCredits)} GDevelop credits available</Trans>
   );
-  const priceInCredits = price.priceInCredits;
-  const maximumPriceInCredits =
-    (price.variablePrice &&
-      price.variablePrice[aiRequestMode] &&
-      price.variablePrice[aiRequestMode]['default'] &&
-      price.variablePrice[aiRequestMode]['default'].maximumPriceInCredits) ||
-    null;
-  const minimumPriceInCredits =
-    (price.variablePrice &&
-      price.variablePrice[aiRequestMode] &&
-      price.variablePrice[aiRequestMode]['default'] &&
-      price.variablePrice[aiRequestMode]['default'].minimumPriceInCredits) ||
-    null;
 
   const remainingDaysBeforeReset = quota.resetsAt
     ? Math.ceil((quota.resetsAt - Date.now()) / (1000 * 60 * 60 * 24))
@@ -165,18 +152,9 @@ const getPriceAndRequestsTextAndTooltip = ({
 
   const tooltipText = (
     <ColumnStackLayout noMargin>
-      <Line noMargin>
-        <Trans>
-          {currentQuotaText} (out of {quota.max}).
-        </Trans>
-        {remainingDaysBeforeResetText}
-      </Line>
-      <Line noMargin>
-        <Trans>
-          A request costs {minimumPriceInCredits}-{maximumPriceInCredits} AI
-          credits, or {priceInCredits} GDevelop credits.
-        </Trans>
-      </Line>
+      {remainingDaysBeforeResetText && (
+        <Line noMargin>{remainingDaysBeforeResetText}</Line>
+      )}
       <Line noMargin>
         <Link
           href={getHelpLink('/interface/ai')}
@@ -196,11 +174,7 @@ const getPriceAndRequestsTextAndTooltip = ({
     <LineStackLayout alignItems="center" noMargin>
       {shouldShowCredits && <Coin fontSize="small" />}
       <Text size="body-small" color="secondary" noMargin>
-        {shouldShowCredits ? (
-          creditsText
-        ) : (
-          <Trans>{aiCreditsAvailable} AI credits available</Trans>
-        )}
+        {shouldShowCredits ? creditsText : currentQuotaText}
         <span
           style={{
             verticalAlign: 'middle',
