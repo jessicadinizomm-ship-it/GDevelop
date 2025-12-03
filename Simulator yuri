@@ -1,0 +1,152 @@
+<!DOCTYPE html> 
+<html lang="pt-BR"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Yuri Obsession - Movimento + Customização</title> 
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script> 
+    <style> 
+        body { margin: 0; background: linear-gradient(pink, lavender); font-family: Arial; } 
+        #game-container { display: flex; flex-direction: column; align-items: center; } 
+    </style> 
+</head> 
+<body> 
+    <div id="game-container"></div> 
+ 
+    <script> 
+        const config = { 
+            type: Phaser.AUTO, 
+            width: 800, 
+            height: 600, 
+            parent: 'game-container', 
+            physics: { default: 'arcade', arcade: { gravity: { y: 0 } } }, 
+            scene: { 
+                preload: preload, 
+                create: create, 
+                update: update 
+            } 
+        }; 
+ 
+        const game = new Phaser.Game(config); 
+ 
+        // VARIÁVEIS GLOBAIS 
+        let player, mia, rival, cursors, joystick, affection = 0, obsession = 0; 
+        let currentScene = 'jardim', custom = { hair: 0, skin: 0, clothes: 0 }; 
+        let interactionText, uiText; 
+ 
+        function preload() { 
+            // Cenários 
+            this.load.image('jardim', 'https://via.placeholder.com/800x600/ff9a9e/ffffff?text=JARDIM'); 
+            this.load.image('sala', 'https://via.placeholder.com/800x600/fad0c4/ffffff?text=SALA'); 
+            this.load.image('telhado', 'https://via.placeholder.com/800x600/ffe4e1/ffffff?text=TELHADO'); 
+             
+            // Personagens base 
+            this.load.image('player_base', 'https://via.placeholder.com/64x128/ffc0cb/ffffff?text=PLAYER'); 
+            this.load.image('mia', 'https://via.placeholder.com/64x128/ff69b4/ffffff?text=MIA'); 
+            this.load.image('rival', 'https://via.placeholder.com/64x128/ff1493/ffffff?text=RIVAL'); 
+             
+            // Customização (placeholders) 
+            for(let i=0; i<4; i++) { 
+                this.load.image(`hair${i}`, `https://via.placeholder.com/64x64/${['ff69b4','ffff00','8a2be2','00ff00'][i]}/000?text=H${i}`); 
+                this.load.image(`skin${i}`, `https://via.placeholder.com/64x128/${['ffdab9','deb887','cd853f','8b4513'][i]}/000?text=S${i}`); 
+                this.load.image(`clothes${i}`, `https://via.placeholder.com/64x128/${['ff69b4','87ceeb','dda0dd','98fb98'][i]}/000?text=C${i}`); 
+            } 
+        } 
+ 
+        function create() { 
+            // Fundo inicial 
+            this.add.image(400, 300, 'jardim').setScale(1); 
+             
+            // PLAYER CUSTOMIZÁVEL 
+            player = this.physics.add.sprite(100, 500, 'player_base').setScale(2).setCollideWorldBounds(true); 
+            player.setInteractive(); 
+             
+            // NPCs 
+            mia = this.physics.add.sprite(600, 450, 'mia').setScale(2).setImmovable(); 
+            rival = this.physics.add.sprite(300, 450, 'rival').setScale(2).setImmovable(); 
+             
+            // Controles PC 
+            cursors = this.input.keyboard.createCursorKeys(); 
+             
+            // Controles Mobile (joystick virtual) 
+            joystick = this.add.circle(100, 500, 60, 0x6666ff, 0.5).setInteractive(); 
+            joystick.on('pointerdown', () => joystick.isDown = true); 
+            joystick.on('pointerup', () => joystick.isDown = false); 
+             
+            // UI 
+            uiText = this.add.text(10, 10, '❤️ Afeto: 0 | 😍 Obsessão: 0 | 👗 Custom: H0 S0 C0',  
+                { fontSize: '20px', fill: '#ff1493' }); 
+            interactionText = this.add.text(200, 500, '', { fontSize: '24px', fill: '#ff69b4', backgroundColor: '#fff' }); 
+             
+            // EDITOR DE PERSONAGEM (teclas 1-9) 
+            this.input.keyboard.on('keydown', (event) => { 
+                if(event.key >= '1' && event.key <= '4') custom.hair = parseInt(event.key)-1; 
+                if(event.key >= '5' && event.key <= '9') custom.clothes = parseInt(event.key)-5; 
+                if(event.key === '0') custom.skin++; 
+                updatePlayerAppearance(this); 
+            }); 
+        } 
+ 
+        function update() { 
+            // MOVIMENTAÇÃO PLAYER 
+            let vx = 0, vy = 0; 
+             
+            if(cursors.left.isDown || joystick.x < -20) vx = -200; 
+            if(cursors.right.isDown || joystick.x > 20) vx = 200; 
+            if(cursors.up.isDown || joystick.y < -20) vy = -200; 
+            if(cursors.down.isDown || joystick.y > 20) vy = 200; 
+             
+            player.setVelocity(vx, vy); 
+             
+            // INTERAÇÕES (E para interagir) 
+            if(Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey('E'))) { 
+                let distanceMia = Phaser.Math.Distance.Between(player.x, player.y, mia.x, mia.y); 
+                let distanceRival = Phaser.Math.Distance.Between(player.x, player.y, rival.x, rival.y); 
+                 
+                if(distanceMia < 100) { 
+                    affection += 10; obsession += 5; 
+                    interactionText.setText('💕 MIA: "Oi! Você é tão fofa hoje!"'); 
+                } else if(distanceRival < 100) { 
+                    obsession += 10; 
+                    interactionText.setText('😈 RIVAL: "Fique longe da Mia!"'); 
+                } else { 
+                    interactionText.setText('👆 Aproxime-se de alguém!'); 
+                } 
+                updateUI(); 
+            } 
+             
+            // MUDAR CENA (teclas Q,W,E,R) 
+            if(this.input.keyboard.addKey('Q').isDown) changeScene(this, 'jardim'); 
+            if(this.input.keyboard.addKey('W').isDown) changeScene(this, 'sala'); 
+             
+            // FIM DE JOGO 
+            if(affection >= 100) alert('💖 FINAL FELIZ YURI! Mia é sua namorada! 💕'); 
+            if(obsession >= 80) alert('😈 FINAL YANDERE! Você conquistou Mia à força! 🔒'); 
+        } 
+ 
+        function updatePlayerAppearance(scene) { 
+            // Remove camadas antigas 
+            player.clearTint(); 
+             
+            // Aplica novas (simulado com tint) 
+            const hairColors = ['0xff69b4', '0xffff00', '0x8a2be2', '0x00ff00']; 
+            player.setTint(hairColors[custom.hair % 4]); 
+             
+            uiText.setText(`❤️ Afeto: ${affection} | 😍 Obsessão: ${obsession} | 👗 H${custom.hair} S${custom.skin} C${custom.clothes}`); 
+        } 
+ 
+        function updateUI() { 
+            uiText.setText(`❤️ Afeto: ${affection} | 😍 Obsessão: ${obsession} | 👗 H${custom.hair} S${custom.skin} C${custom.clothes}`); 
+        } 
+ 
+        function changeScene(scene, sceneName) { 
+            scene.children.removeAll(true); 
+            scene.add.image(400, 300, sceneName).setScale(1); 
+            // Recria player e NPCs... 
+            player = scene.physics.add.sprite(100, 500, 'player_base').setScale(2); 
+            mia = scene.physics.add.sprite(600, 450, 'mia').setScale(2); 
+        } 
+    </script> 
+</body> 
+</html> 
+
